@@ -31,7 +31,7 @@ namespace Client.Core
             Logger.WriteLine(Logger.Gray + Vector3.Distance(mechanicVehicle.Position, Game.PlayerPed.Position));
             //API.TaskVehicleDriveToCoord(mechanic.Handle,mechanicVehicle.Handle, targetPos.X, targetPos.Y, targetPos.Z, 10f, 0, (uint)mechanicVehicle.GetHashCode(), 786603, 1f, 1);
             API.TaskVehicleDriveToCoord(mechanic.Handle, mechanicVehicle.Handle, targetPos.X, targetPos.Y, targetPos.Z, 10f, 0, (uint)mechanicVehicle.GetHashCode(), 411, 1f, 1);
-            if (Vector3.Distance(mechanicVehicle.Position, (Vector3)targetPos)<= 5f)
+            if (Vector3.Distance(mechanicVehicle.Position, (Vector3)targetPos)<= 10f)
             {
                 Tick -= UpdateDrivingToTarget;
                 API.TaskLeaveVehicle(mechanic.Handle, mechanicVehicle.Handle, 0);
