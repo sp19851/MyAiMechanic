@@ -1,6 +1,7 @@
 ﻿using CitizenFX.Core;
 
 using Client.Core;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -18,6 +19,7 @@ namespace Client
             Handlers = EventHandlers;
 
             Constant.Config = Configuration.Parse("config");
+            Logger.Warn($"Constant.Config {JsonConvert.SerializeObject(Constant.Config)}");
             Init();
         }
 

@@ -1,3 +1,5 @@
 {
-    
+    "Framework": "Core", //Core QbCore , ESX
+    "PriceSimple": 150,
+    "PriceTow": 500
 }
