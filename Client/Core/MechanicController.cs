@@ -4,6 +4,7 @@ using CitizenFX.Core.Native;
 using CitizenFX.Core.UI;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -20,6 +21,7 @@ namespace Client.Core
         private decimal playerMoney;
         private decimal playerBank;
         private bool playerEconomyDataReady = false;
+        private bool QbCoreCanPay = false;
 
         private List<Model> mechanicModels = new List<Model> {new Model("MP_M_WareMech_01"), new Model("IG_Mechanic_02"), new Model("MP_F_BennyMech_01"),
                                                                 new Model("U_M_Y_SmugMech_01"),  new Model("S_M_Y_XMech_02_MP")};
@@ -101,13 +103,14 @@ namespace Client.Core
 
         private async Task<bool> CanPay(decimal amount)
         {
+            var price = decimal.Parse(Constant.Config["PriceSimple"].ToString());
             if (Constant.Config["Framework"].ToString() == "Core")
             {
                 playerEconomyDataReady = false;
                 TriggerEvent("Economy.GetEconomyData");
                 while (!playerEconomyDataReady) await Delay(500);
                 
-                var price = decimal.Parse(Constant.Config["PriceSimple"].ToString());
+               
                 Logger.Warn($"playerEconomyDataReady price {price} bank {playerBank} cash {playerMoney}");
                 if (playerBank >= price)
                 {
@@ -122,6 +125,11 @@ namespace Client.Core
             }
             else if (Constant.Config["Framework"].ToString() == "QBCore")
             {
+                playerEconomyDataReady = false;
+                TriggerServerEvent("MyAiMech:server:IsCanPay", price);
+                while (!playerEconomyDataReady) await Delay(500);
+                return QbCoreCanPay;
+                
 
             }
             return false;
@@ -134,12 +142,13 @@ namespace Client.Core
                 Logger.Error("Оплата не возможна, так как в config.json не указан фреймворк");
                 return;
             }
+            var price = decimal.Parse(Constant.Config["PriceSimple"].ToString());
             if (Constant.Config["Framework"].ToString() == "Core")
             {
                 playerEconomyDataReady = false;
                 TriggerEvent("Economy.GetEconomyData");
                 while (!playerEconomyDataReady) await Delay(500);
-                var price = decimal.Parse(Constant.Config["PriceSimple"].ToString());
+               
                 if (await CanPay(price))
                 {
                     if (playerBank >= price)
@@ -156,7 +165,19 @@ namespace Client.Core
                 return;
             } else if (Constant.Config["Framework"].ToString() == "QBCore") 
             {
-            
+                playerEconomyDataReady = false;
+                TriggerServerEvent("MyAiMech:server:IsCanPay", price);
+                while (!playerEconomyDataReady) await Delay(500);
+                if (playerBank >= price)
+                {
+                    TriggerServerEvent("MyAiMech:server:RemoveBank", price);
+                    return;
+                }
+                if (playerMoney >= price)
+                {
+                    TriggerServerEvent("MyAiMech:server:RemoveCash", price);
+                    return;
+                }
             }
         }
 
@@ -230,6 +251,7 @@ namespace Client.Core
 
         //[EventHandler(Events.CreateCar)]
         #region Events
+        #region Core
         [EventHandler("Economy.OnGetEconomyData")]
         public void OnGetEconomyData(decimal money, decimal bank)
         {
@@ -237,7 +259,17 @@ namespace Client.Core
             playerBank = bank;
             playerEconomyDataReady = true;
         }
-
+        #endregion
+        #region QBCore
+        [EventHandler("MyAiMech:client:IsCanPay")]
+        public void IsCanPay(bool canpay, decimal bank, decimal money)
+        {
+            QbCoreCanPay = canpay;
+            playerMoney = money;
+            playerBank = bank;
+            playerEconomyDataReady = true;
+        }
+        #endregion
 
         #endregion
     }
