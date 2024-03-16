@@ -20,7 +20,15 @@ namespace Client.Core
             Ped playerPed = Game.PlayerPed;
             if (playerPed.CurrentVehicle != null)
             {
-                mechanicController.CreateCar(playerPed.CurrentVehicle.Position);
+                if (!mechanicController.IsMechanicISRuning())
+                {
+                    mechanicController.CreateCar(playerPed.CurrentVehicle.Position);
+                }
+                else
+                {
+                    mechanicController.LeaveTarget();
+                }
+                
             }
             
         }

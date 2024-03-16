@@ -18,6 +18,7 @@ namespace Client.Core
         public async static Task<Vehicle> CreateMechanicVehicle(Model model, Vector3 coords, float heading, Ped driver = null)
         {
             var vehicle = await World.CreateVehicle(model, coords, heading);
+
             if (driver != null)
             {
                 driver.SetIntoVehicle(vehicle, VehicleSeat.Driver);

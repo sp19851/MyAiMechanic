@@ -31,12 +31,20 @@ namespace Client.Core
         {
             
         }
+        public bool IsMechanicISRuning() => mechanicVehicle == null ? false : true;
+
         private async Task UpdateDrivingToTarget()
         {
-            Logger.WriteLine(Logger.Gray + Vector3.Distance(mechanicVehicle.Position, Game.PlayerPed.Position));
-            //API.TaskVehicleDriveToCoord(mechanic.Handle,mechanicVehicle.Handle, targetPos.X, targetPos.Y, targetPos.Z, 10f, 0, (uint)mechanicVehicle.GetHashCode(), 786603, 1f, 1);
+
+            if (mechanic == null || mechanicVehicle == null) 
+            {
+                //Logger.Error($" UpdateDrivingToTarget null {mechanic == null} {mechanicVehicle == null}");
+                return;
+            }
+            
             API.TaskVehicleDriveToCoord(mechanic.Handle, mechanicVehicle.Handle, targetPos.X, targetPos.Y, targetPos.Z, 20f, 0, (uint)mechanicVehicle.GetHashCode(), 283, 1f, 1);
             var dst = Vector3.Distance(mechanicVehicle.Position, (Vector3)targetPos);
+            //Logger.Warn($" UpdateDrivingToTarget dst {dst}");
             if (dst > 70)
             {
 
@@ -61,23 +69,37 @@ namespace Client.Core
             Tick -= UpdateDrivingToTarget;
             API.TaskLeaveVehicle(mechanic.Handle, mechanicVehicle.Handle, 0);
             await Delay(3000);
-            var engine = API.GetWorldPositionOfEntityBone(targetVehicle.Handle, API.GetEntityBoneIndexByName(targetVehicle.Handle, "engine"));
+            var engine = API.GetWorldPositionOfEntityBone(targetVehicle.Handle, API.GetEntityBoneIndexByName(targetVehicle.Handle, "bonnet"));
+            var coord = targetVehicle.Position + targetVehicle.ForwardVector * 3;
             //API.TaskGoToCoordAnyMeans(mechanic.Handle, engine.X, engine.Y, engine.Z, 1.0f, 0, false, 786492, 0xbf800000);
             mechanic.DrivingStyle = DrivingStyle.Normal;
-            mechanic.Task.GoTo(engine);
+            mechanic.Task.GoTo(coord);
             await Delay(5000);
             //API.TaskVehicleDriveToCoord(mechanic.Handle, mechanicVehicle.Handle, targetPos.X, targetPos.Y, targetPos.Z, 10f, 0, (uint)mechanicVehicle.GetHashCode(), 786603, 1f, 1);
-            mechanic.Task.ClearAll();
+            mechanic.Task.ClearSecondary(); //ClearAll();
             Tick += UpdateWalkingToTarget;
         }
 
         private async Task UpdateWalkingToTarget()
         {
-            var engine = API.GetWorldPositionOfEntityBone(targetVehicle.Handle, API.GetEntityBoneIndexByName(targetVehicle.Handle, "engine"));
-            var coord = engine + targetVehicle.ForwardVector * 1;
+            //var engine = API.GetWorldPositionOfEntityBone(targetVehicle.Handle, API.GetEntityBoneIndexByName(targetVehicle.Handle, "bonnet"));
+            //var coord = engine + targetVehicle.ForwardVector * 2;
+            var coord = targetVehicle.Position + targetVehicle.ForwardVector * 2;
+            //Logger.Warn($"UpdateWalkingToTarget {Vector3.Distance(mechanic.Position, coord)}");
+            mechanic.DrivingStyle = DrivingStyle.ShortestPath;
             if (Vector3.Distance(mechanic.Position, coord) > 1f)
             {
-                mechanic.Task.GoTo(engine, true);
+                
+                if (API.GetNavmeshRouteResult(mechanic.Handle) != 3)
+                {
+                    mechanic.Task.GoTo(coord, true);
+                }
+                else
+                {
+                    mechanic.Task.GoTo(coord);
+                }
+                
+                World.DrawMarker(MarkerType.CarSymbol, coord, new Vector3(0,0,0), new Vector3(0, 0, 0), new Vector3(1, 1, 1), System.Drawing.Color.FromArgb(255,255,0));
             }
             else
             {
@@ -109,9 +131,6 @@ namespace Client.Core
                 playerEconomyDataReady = false;
                 TriggerEvent("Economy.GetEconomyData");
                 while (!playerEconomyDataReady) await Delay(500);
-                
-               
-                Logger.Warn($"playerEconomyDataReady price {price} bank {playerBank} cash {playerMoney}");
                 if (playerBank >= price)
                 {
                     return true;
@@ -186,6 +205,8 @@ namespace Client.Core
             API.TaskVehicleDriveWander(mechanic.Handle, mechanicVehicle.Handle, 17.0f, 1074528293);
 
             var veh = mechanicVehicle.Handle;
+            mechanicVehicle.IsSirenActive = false;
+            mechanicVehicle.IsSirenSilent = false;
             API.SetEntityAsNoLongerNeeded(ref veh);
             var ped = mechanic.Handle;
             API.SetPedAsNoLongerNeeded(ref ped);
@@ -230,21 +251,24 @@ namespace Client.Core
             Model modelVehiicle = new Model("FLATBED");
             var rnd = new Random();
             var modelPed = mechanicModels[rnd.Next(0, mechanicModels.Count())];
-            var newPos = Game.PlayerPed.Position - Game.PlayerPed.ForwardVector * 150;
+            var newPos = targetVehicle.Position - Game.PlayerPed.ForwardVector * 100;
             var node = World.GetNextPositionOnStreet((Vector2)newPos, true);
 
+
+
             
-
-
             mechanic = await Utils.CreateMechanicPed(modelPed, node);
+            while (mechanic == null) await Delay(500);
             mechanicVehicle = await Utils.CreateMechanicVehicle(modelVehiicle, node, targetVehicle.Heading, mechanic);
-            if (mechanicVehicle != null)
+            if (mechanicVehicle != null )
             {
                 mechanicVehicle.PlaceOnGround();
                 mechanicVehicleBlip = mechanicVehicle.AttachBlip();
                 targetPos = (Vector3)targetpos;
                 Tick += UpdateDrivingToTarget;
-                Screen.ShowNotification("Диспетчер. Механик выехал к Вам. Ожидайте!");    
+                Screen.ShowNotification("Диспетчер. Механик выехал к Вам. Ожидайте!");   
+                mechanicVehicle.IsSirenActive = true;
+                mechanicVehicle.IsSirenSilent = true;
             }
         }
 
@@ -270,6 +294,13 @@ namespace Client.Core
             playerEconomyDataReady = true;
         }
         #endregion
+
+        [EventHandler("onResourceStop")]
+        public void OnResourceStop()
+        {
+            LeaveTarget();
+        }
+
 
         #endregion
     }

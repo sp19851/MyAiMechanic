@@ -10,11 +10,12 @@ if (t.Framework == "QBCore") then
     QBCore = exports['qb-core']:GetCoreObject()
 end
 
-RegisterNetEvent('MyAiMech:server:IsCanPay', function(price)
+RegisterNetEvent('MyAiMech:server:IsCanPay', function(_price)
     local src = source
+    local price = tonumber(_price)
     local Player = QBCore.Functions.GetPlayer(src)
     local CanPay = false
-    if (Player.PlayerData.money.bank>=price or Player.PlayerData.money.chash>=price) then
+    if (Player.PlayerData.money.bank >= price or Player.PlayerData.money.chash >= price) then
         CanPay = true
 
     end
