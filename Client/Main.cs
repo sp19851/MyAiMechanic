@@ -25,7 +25,24 @@ namespace Client
 
         private void Init()
         {
+            if (Constant.Config["Framework"] == null)
+            {
+                Constant.Framework = Constant.Config["Framework"].ToString();
+                Logger.Error("Ты не можешь использовать этот скрипт потому, что не сможешь оплатить услугу, так как в config.json не указан фреймворк");
+                return;
+            }
+
+            if (Constant.Config["PriceMechanic"] == null || Constant.Config["PriceTaxi"] == null)
+            {
+                Constant.PriceMechanic = decimal.Parse(Constant.Config["PriceMechanic"].ToString());
+                Constant.PriceTaxi = decimal.Parse(Constant.Config["PriceTaxi"].ToString());
+                Logger.Error("Ты не можешь использовать этот скрипт потому, что не сможешь оплатить услугу, так как в config.json не указаны стоимости");
+                return;
+            }
+
+            LoadScript(new EconomyController(this));
             LoadScript(new MechanicController(this));
+            LoadScript(new TaxiController(this));
             LoadScript(new Commands(this));
         }
         #region DO NOT TOUCH THIS

@@ -11,11 +11,11 @@ namespace Client.Core
     static class Utils
     {
         #region CreateBlock
-        public async static Task<Ped> CreateMechanicPed(Model model, Vector3 coords, float heading = 0f)
+        public async static Task<Ped> CreatePed(Model model, Vector3 coords, float heading = 0f)
         {
             return await World.CreatePed(model, coords, heading);
         }
-        public async static Task<Vehicle> CreateMechanicVehicle(Model model, Vector3 coords, float heading, Ped driver = null)
+        public async static Task<Vehicle> CreateVehicle(Model model, Vector3 coords, float heading, Ped driver = null)
         {
             var vehicle = await World.CreateVehicle(model, coords, heading);
 
@@ -23,7 +23,9 @@ namespace Client.Core
             {
                 driver.SetIntoVehicle(vehicle, VehicleSeat.Driver);
             }
-           
+            var rnd = new Random();
+            var plate = $"AIMECH{rnd.Next(10,99)}";
+            API.SetVehicleNumberPlateText(vehicle.Handle, plate);
             return vehicle;
 
         }

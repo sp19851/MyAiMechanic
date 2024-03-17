@@ -49,7 +49,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Core\Commands.cs" />
+    <Compile Include="Core\EconomyController.cs" />
     <Compile Include="Core\Events.cs" />
+    <Compile Include="Core\TaxiController.cs" />
     <Compile Include="Core\Utils.cs" />
     <Compile Include="Script.cs" />
     <Compile Include="Configuration.cs" />

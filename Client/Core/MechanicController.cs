@@ -13,26 +13,29 @@ namespace Client.Core
 {
     public class MechanicController : Script
     {
+        private EconomyController economyController;
+        
         private Ped mechanic;
         private Vehicle mechanicVehicle;
         private Blip mechanicVehicleBlip;
         private Vehicle targetVehicle;
         private Vector3 targetPos;
-        private decimal playerMoney;
-        private decimal playerBank;
-        private bool playerEconomyDataReady = false;
-        private bool QbCoreCanPay = false;
-        private string Framework { get; set; }
+        
+        
 
         private List<Model> mechanicModels = new List<Model> {new Model("MP_M_WareMech_01"), new Model("IG_Mechanic_02"), new Model("MP_F_BennyMech_01"),
                                                                 new Model("U_M_Y_SmugMech_01"),  new Model("S_M_Y_XMech_02_MP")};
-            
+
+        private List<Model> mechanicVehicleModels = new List<Model> {new Model("Sadler"), new Model("bobcatXL"), new Model("FLATBED"),
+                                                                new Model("towtruck3"),  new Model("towtruck4")};
+        
+
 
         public MechanicController(Main main):base(main)
         {
-            
+            economyController = main.GetScript<EconomyController>();
         }
-        public bool IsMechanicISRuning() => mechanicVehicle == null ? false : true;
+        public bool IsRuning() => mechanicVehicle == null ? false : true;
 
         private async Task UpdateDrivingToTarget()
         {
@@ -43,19 +46,25 @@ namespace Client.Core
                 return;
             }
             
-            API.TaskVehicleDriveToCoord(mechanic.Handle, mechanicVehicle.Handle, targetPos.X, targetPos.Y, targetPos.Z, 20f, 0, (uint)mechanicVehicle.GetHashCode(), 283, 1f, 1);
+            API.TaskVehicleDriveToCoord(mechanic.Handle, mechanicVehicle.Handle, targetPos.X, targetPos.Y, targetPos.Z, 20f, 0, (uint)mechanicVehicle.GetHashCode(), (int)DrivingStyle.Normal, 1f, 1);
             var dst = Vector3.Distance(mechanicVehicle.Position, (Vector3)targetPos);
             //Logger.Warn($" UpdateDrivingToTarget dst {dst}");
-            if (dst > 70)
+            if (dst > 70 && dst <=100f)
             {
 
-                API.TaskVehicleDriveToCoord(mechanic.Handle, mechanicVehicle.Handle, targetPos.X, targetPos.Y, targetPos.Z, 20f, 0, (uint)mechanicVehicle.GetHashCode(), 283, 1f, 1);
+                API.TaskVehicleDriveToCoord(mechanic.Handle, mechanicVehicle.Handle, targetPos.X, targetPos.Y, targetPos.Z, 20f, 0, (uint)mechanicVehicle.GetHashCode(), (int)DrivingStyle.Normal, 1f, 1);
 
             }
-            if ( dst > 10 && dst <= 70f)
+            if (dst > 35 && dst <= 70f)
             {
 
-                API.TaskVehicleDriveToCoord(mechanic.Handle, mechanicVehicle.Handle, targetPos.X, targetPos.Y, targetPos.Z, 5f, 0, (uint)mechanicVehicle.GetHashCode(), 287, 1f, 1);
+                API.TaskVehicleDriveToCoord(mechanic.Handle, mechanicVehicle.Handle, targetPos.X, targetPos.Y, targetPos.Z, 20f, 0, (uint)mechanicVehicle.GetHashCode(), (int)DrivingStyle.Normal, 1f, 1);
+
+            }
+            if ( dst > 10 && dst <= 35)
+            {
+
+                API.TaskVehicleDriveToCoord(mechanic.Handle, mechanicVehicle.Handle, targetPos.X, targetPos.Y, targetPos.Z, 5f, 0, (uint)mechanicVehicle.GetHashCode(), (int)DrivingStyle.IgnoreRoads, 1f, 1);
 
             }
             if (dst <= 10f)
@@ -83,9 +92,14 @@ namespace Client.Core
 
         private async Task UpdateWalkingToTarget()
         {
-            //var engine = API.GetWorldPositionOfEntityBone(targetVehicle.Handle, API.GetEntityBoneIndexByName(targetVehicle.Handle, "bonnet"));
-            //var coord = engine + targetVehicle.ForwardVector * 2;
-            var coord = targetVehicle.Position + targetVehicle.ForwardVector * 2;
+            if (mechanic == null || mechanicVehicle == null)
+            {
+                //Logger.Error($" UpdateDrivingToTarget null {mechanic == null} {mechanicVehicle == null}");
+                return;
+            }
+            var engine = API.GetWorldPositionOfEntityBone(targetVehicle.Handle, API.GetEntityBoneIndexByName(targetVehicle.Handle, "bonnet"));
+            var coord = engine + targetVehicle.ForwardVector * 2;
+            //var coord = targetVehicle.Position + targetVehicle.ForwardVector * 2;
             //Logger.Warn($"UpdateWalkingToTarget {Vector3.Distance(mechanic.Position, coord)}");
             mechanic.DrivingStyle = DrivingStyle.ShortestPath;
             if (Vector3.Distance(mechanic.Position, coord) > 1f)
@@ -99,8 +113,8 @@ namespace Client.Core
                 {
                     mechanic.Task.GoTo(coord);
                 }
-                
-                World.DrawMarker(MarkerType.CarSymbol, coord, new Vector3(0,0,0), new Vector3(0, 0, 0), new Vector3(1, 1, 1), System.Drawing.Color.FromArgb(255,255,0));
+                World.DrawMarker(MarkerType.CarSymbol, coord, new Vector3(0, 0, 0), new Vector3(0, 0, 0), new Vector3(1, 1, 1), System.Drawing.Color.FromArgb(255, 255, 0));
+                World.DrawMarker(MarkerType.HorizontalCircleFat, engine, new Vector3(0,0,0), new Vector3(0, 0, 0), new Vector3(0.2f, 0.2f, 0.2f), System.Drawing.Color.FromArgb(255,0,0));
             }
             else
             {
@@ -120,90 +134,13 @@ namespace Client.Core
         public async void RepairVehicle()
         {
             targetVehicle.EngineHealth = 800f;
-            if (Framework == "Core") TriggerEvent("Notification.AddAdvanceNotif", "МЕХАНИК", "", 3500, "Готово! Думаю, что до сервиса дотянешь", "blue", "Info");
+            if (Constant.Framework == "Core") TriggerEvent("Notification.AddAdvanceNotif", "МЕХАНИК", "", 3500, "Готово! Думаю, что до сервиса дотянешь", "blue", "Info");
             else Screen.ShowNotification("Нужно быть за рулем");
-         
-            Pay();
+
+            economyController.Pay(Constant.PriceMechanic);
         }
 
-        private async Task<bool> CanPay(decimal amount)
-        {
-            var price = decimal.Parse(Constant.Config["PriceSimple"].ToString());
-            if (Framework == "Core")
-            {
-                Logger.Warn($"Economy.GetEconomyData");
-                playerEconomyDataReady = false;
-                TriggerEvent("Economy.GetEconomyData");
-                while (!playerEconomyDataReady) await Delay(500);
-                if (playerBank >= price)
-                {
-                    return true;
-                }
-                if (playerMoney >= price)
-                {
-                    return true;
-                }
-                TriggerEvent("Notification.AddAdvanceNotif", "МЕХАНИК", "", 3500, "У Вас нет средств для оплаты", "crimson", "Warning");
-                return false;
-            }
-            else if (Framework == "QBCore")
-            {
-                playerEconomyDataReady = false;
-                TriggerServerEvent("MyAiMech:server:IsCanPay", price);
-                while (!playerEconomyDataReady) await Delay(500);
-                return QbCoreCanPay;
-                
-
-            }
-            return false;
-        }
-
-        private async void Pay()
-        {
-            if (Constant.Config["Framework"] == null) 
-            {
-                Logger.Error("Оплата не возможна, так как в config.json не указан фреймворк");
-                return;
-            }
-            Framework = Constant.Config["Framework"].ToString();
-            var price = decimal.Parse(Constant.Config["PriceSimple"].ToString());
-            if (Framework == "Core")
-            {
-                playerEconomyDataReady = false;
-                TriggerEvent("Economy.GetEconomyData");
-                while (!playerEconomyDataReady) await Delay(500);
-               
-                if (await CanPay(price))
-                {
-                    if (playerBank >= price)
-                    {
-                        TriggerEvent("Economy.RemoveBank", price);
-                        return;
-                    }
-                    if (playerMoney >= price)
-                    {
-                        TriggerEvent("Economy.RemoveCash", price);
-                        return;
-                    }
-                }
-                return;
-            } else if (Framework == "QBCore") 
-            {
-                playerEconomyDataReady = false;
-                TriggerServerEvent("MyAiMech:server:IsCanPay", price);
-                while (!playerEconomyDataReady) await Delay(500);
-                if (playerBank >= price)
-                {
-                    TriggerServerEvent("MyAiMech:server:RemoveBank", price);
-                    return;
-                }
-                if (playerMoney >= price)
-                {
-                    TriggerServerEvent("MyAiMech:server:RemoveCash", price);
-                    return;
-                }
-            }
-        }
+        
 
         public async void LeaveTarget()
         {
@@ -226,54 +163,46 @@ namespace Client.Core
         }
         public async void CreateCar(Vector3 targetpos)
         {
-            if (Constant.Config["Framework"] == null)
-            {
-                Logger.Error("Ты не можешь вызвать механика, потому, что не сможешь оплатить услугу, так как в config.json не указан фреймворк");
-                return;
-            }
-            Framework = Constant.Config["Framework"].ToString();
-
-             var price = decimal.Parse(Constant.Config["PriceSimple"].ToString());
-
-            if (await CanPay(price) == false)
+            if (await economyController.CanPay(Constant.PriceMechanic) == false)
             {
                 //TriggerEvent("Notification.AddAdvanceNotif", "МЕХАНИК", "", 3500, "У Вас нет средств для оплаты", "crimson", "Warning");
                 return;
             }
             if (Game.PlayerPed.CurrentVehicle == null) 
             {
-                if (Framework == "Core") TriggerEvent("Notification.AddAdvanceNotif", "МЕХАНИК", "", 3500, "Нужно быть в машине", "crimson", "Warning");
+                if (Constant.Framework == "Core") TriggerEvent("Notification.AddAdvanceNotif", "МЕХАНИК", "", 3500, "Нужно быть в машине", "crimson", "Warning");
                 else Screen.ShowNotification("Нужно быть в машине");
                 await Delay(3000);
                 return;
             }
             if (Game.PlayerPed.SeatIndex != VehicleSeat.Driver)
             {
-                if (Framework == "Core") TriggerEvent("Notification.AddAdvanceNotif", "МЕХАНИК", "", 3500, "Нужно быть за рулем", "crimson", "Warning");
+                if (Constant.Framework == "Core") TriggerEvent("Notification.AddAdvanceNotif", "МЕХАНИК", "", 3500, "Нужно быть за рулем", "crimson", "Warning");
                 else Screen.ShowNotification("Нужно быть за рулем");
                 await Delay(3000);
                 return;
             }
             targetVehicle = Game.PlayerPed.CurrentVehicle;
-            Model modelVehiicle = new Model("FLATBED");
+            //Model modelVehicle = new Model("FLATBED");
             var rnd = new Random();
             var modelPed = mechanicModels[rnd.Next(0, mechanicModels.Count())];
+            var modelVehicle = mechanicVehicleModels[rnd.Next(0, mechanicVehicleModels.Count())];
             var newPos = targetVehicle.Position - Game.PlayerPed.ForwardVector * 100;
             var node = World.GetNextPositionOnStreet((Vector2)newPos, true);
 
 
 
             
-            mechanic = await Utils.CreateMechanicPed(modelPed, node);
+            mechanic = await Utils.CreatePed(modelPed, node);
             while (mechanic == null) await Delay(500);
-            mechanicVehicle = await Utils.CreateMechanicVehicle(modelVehiicle, node, targetVehicle.Heading, mechanic);
+            mechanicVehicle = await Utils.CreateVehicle(modelVehicle, node, targetVehicle.Heading, mechanic);
             if (mechanicVehicle != null )
             {
                 mechanicVehicle.PlaceOnGround();
                 mechanicVehicleBlip = mechanicVehicle.AttachBlip();
                 targetPos = (Vector3)targetpos;
                 Tick += UpdateDrivingToTarget;
-                if (Framework == "Core") TriggerEvent("Notification.AddAdvanceNotif", "МЕХАНИК", "", 3500, "Диспетчер. Механик выехал к Вам. Ожидайте!", "blue", "Info");
+                if (Constant.Framework == "Core") TriggerEvent("Notification.AddAdvanceNotif", "МЕХАНИК", "", 3500, "Диспетчер. Механик выехал к Вам. Ожидайте!", "blue", "Info");
                 else Screen.ShowNotification("Диспетчер. Механик выехал к Вам. Ожидайте!");
                 mechanicVehicle.IsSirenActive = true;
                 mechanicVehicle.IsSirenSilent = true;
@@ -283,27 +212,7 @@ namespace Client.Core
 
         //[EventHandler(Events.CreateCar)]
         #region Events
-        #region Core
-        [EventHandler("Economy.OnGetEconomyData")]
-        public void OnGetEconomyData(decimal money, decimal bank)
-        {
-            Logger.Warn($"OnGetEconomyData money {money} bank {bank}");
-            playerMoney = money;
-            playerBank = bank;
-            playerEconomyDataReady = true;
-        }
-        #endregion
-        #region QBCore
-        [EventHandler("MyAiMech:client:IsCanPay")]
-        public void IsCanPay(bool canpay, decimal bank, decimal money)
-        {
-            
-            QbCoreCanPay = canpay;
-            playerMoney = money;
-            playerBank = bank;
-            playerEconomyDataReady = true;
-        }
-        #endregion
+     
 
         [EventHandler("onResourceStop")]
         public void OnResourceStop()

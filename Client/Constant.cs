@@ -13,7 +13,9 @@ namespace Client
         #region Configs
         public static dynamic Config { get; set; }
 
-        
+        public static string Framework { get; set; }
+        public static decimal PriceMechanic { get; set; }
+        public static decimal PriceTaxi { get; set; }
 
         #endregion
 
