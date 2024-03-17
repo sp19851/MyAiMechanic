@@ -22,6 +22,7 @@ namespace Client.Core
         private decimal playerBank;
         private bool playerEconomyDataReady = false;
         private bool QbCoreCanPay = false;
+        private string Framework { get; set; }
 
         private List<Model> mechanicModels = new List<Model> {new Model("MP_M_WareMech_01"), new Model("IG_Mechanic_02"), new Model("MP_F_BennyMech_01"),
                                                                 new Model("U_M_Y_SmugMech_01"),  new Model("S_M_Y_XMech_02_MP")};
@@ -119,15 +120,18 @@ namespace Client.Core
         public async void RepairVehicle()
         {
             targetVehicle.EngineHealth = 800f;
-            Screen.ShowNotification("Готово! Думаю, что до сервиса дотянешь");
+            if (Framework == "Core") TriggerEvent("Notification.AddAdvanceNotif", "МЕХАНИК", "", 3500, "Готово! Думаю, что до сервиса дотянешь", "blue", "Info");
+            else Screen.ShowNotification("Нужно быть за рулем");
+         
             Pay();
         }
 
         private async Task<bool> CanPay(decimal amount)
         {
             var price = decimal.Parse(Constant.Config["PriceSimple"].ToString());
-            if (Constant.Config["Framework"].ToString() == "Core")
+            if (Framework == "Core")
             {
+                Logger.Warn($"Economy.GetEconomyData");
                 playerEconomyDataReady = false;
                 TriggerEvent("Economy.GetEconomyData");
                 while (!playerEconomyDataReady) await Delay(500);
@@ -142,7 +146,7 @@ namespace Client.Core
                 TriggerEvent("Notification.AddAdvanceNotif", "МЕХАНИК", "", 3500, "У Вас нет средств для оплаты", "crimson", "Warning");
                 return false;
             }
-            else if (Constant.Config["Framework"].ToString() == "QBCore")
+            else if (Framework == "QBCore")
             {
                 playerEconomyDataReady = false;
                 TriggerServerEvent("MyAiMech:server:IsCanPay", price);
@@ -161,8 +165,9 @@ namespace Client.Core
                 Logger.Error("Оплата не возможна, так как в config.json не указан фреймворк");
                 return;
             }
+            Framework = Constant.Config["Framework"].ToString();
             var price = decimal.Parse(Constant.Config["PriceSimple"].ToString());
-            if (Constant.Config["Framework"].ToString() == "Core")
+            if (Framework == "Core")
             {
                 playerEconomyDataReady = false;
                 TriggerEvent("Economy.GetEconomyData");
@@ -182,7 +187,7 @@ namespace Client.Core
                     }
                 }
                 return;
-            } else if (Constant.Config["Framework"].ToString() == "QBCore") 
+            } else if (Framework == "QBCore") 
             {
                 playerEconomyDataReady = false;
                 TriggerServerEvent("MyAiMech:server:IsCanPay", price);
@@ -226,9 +231,9 @@ namespace Client.Core
                 Logger.Error("Ты не можешь вызвать механика, потому, что не сможешь оплатить услугу, так как в config.json не указан фреймворк");
                 return;
             }
-           
-                
-            var price = decimal.Parse(Constant.Config["PriceSimple"].ToString());
+            Framework = Constant.Config["Framework"].ToString();
+
+             var price = decimal.Parse(Constant.Config["PriceSimple"].ToString());
 
             if (await CanPay(price) == false)
             {
@@ -237,13 +242,15 @@ namespace Client.Core
             }
             if (Game.PlayerPed.CurrentVehicle == null) 
             {
-                Screen.ShowNotification("Нужно быть в машине");
+                if (Framework == "Core") TriggerEvent("Notification.AddAdvanceNotif", "МЕХАНИК", "", 3500, "Нужно быть в машине", "crimson", "Warning");
+                else Screen.ShowNotification("Нужно быть в машине");
                 await Delay(3000);
                 return;
             }
             if (Game.PlayerPed.SeatIndex != VehicleSeat.Driver)
             {
-                Screen.ShowNotification("Нужно быть за рулем");
+                if (Framework == "Core") TriggerEvent("Notification.AddAdvanceNotif", "МЕХАНИК", "", 3500, "Нужно быть за рулем", "crimson", "Warning");
+                else Screen.ShowNotification("Нужно быть за рулем");
                 await Delay(3000);
                 return;
             }
@@ -266,7 +273,8 @@ namespace Client.Core
                 mechanicVehicleBlip = mechanicVehicle.AttachBlip();
                 targetPos = (Vector3)targetpos;
                 Tick += UpdateDrivingToTarget;
-                Screen.ShowNotification("Диспетчер. Механик выехал к Вам. Ожидайте!");   
+                if (Framework == "Core") TriggerEvent("Notification.AddAdvanceNotif", "МЕХАНИК", "", 3500, "Диспетчер. Механик выехал к Вам. Ожидайте!", "blue", "Info");
+                else Screen.ShowNotification("Диспетчер. Механик выехал к Вам. Ожидайте!");
                 mechanicVehicle.IsSirenActive = true;
                 mechanicVehicle.IsSirenSilent = true;
             }
@@ -279,6 +287,7 @@ namespace Client.Core
         [EventHandler("Economy.OnGetEconomyData")]
         public void OnGetEconomyData(decimal money, decimal bank)
         {
+            Logger.Warn($"OnGetEconomyData money {money} bank {bank}");
             playerMoney = money;
             playerBank = bank;
             playerEconomyDataReady = true;
@@ -288,6 +297,7 @@ namespace Client.Core
         [EventHandler("MyAiMech:client:IsCanPay")]
         public void IsCanPay(bool canpay, decimal bank, decimal money)
         {
+            
             QbCoreCanPay = canpay;
             playerMoney = money;
             playerBank = bank;
