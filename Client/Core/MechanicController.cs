@@ -195,11 +195,13 @@ namespace Client.Core
             
             mechanic = await Utils.CreatePed(modelPed, node);
             while (mechanic == null) await Delay(500);
-            mechanicVehicle = await Utils.CreateVehicle(modelVehicle, node, targetVehicle.Heading, mechanic);
+            var plate = $"AIMECH{rnd.Next(10, 99)}";
+            mechanicVehicle = await Utils.CreateVehicle(modelVehicle, node, targetVehicle.Heading, plate, mechanic);
             if (mechanicVehicle != null )
             {
                 mechanicVehicle.PlaceOnGround();
                 mechanicVehicleBlip = mechanicVehicle.AttachBlip();
+                mechanicVehicleBlip.Sprite = BlipSprite.Repair;
                 targetPos = (Vector3)targetpos;
                 Tick += UpdateDrivingToTarget;
                 if (Constant.Framework == "Core") TriggerEvent("Notification.AddAdvanceNotif", "МЕХАНИК", "", 3500, "Диспетчер. Механик выехал к Вам. Ожидайте!", "blue", "Info");

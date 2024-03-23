@@ -20,7 +20,7 @@ namespace Client.Core
         }
         internal async Task<bool> CanPay(decimal price)
         {
-            
+            Logger.Warn($"CanPay Constant.Framework {Constant.Framework}");
             if (Constant.Framework == "Core")
             {
                 Logger.Warn($"Economy.GetEconomyData");

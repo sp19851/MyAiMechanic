@@ -1,1 +1,5 @@
-{"Framework":"Core","":150,"PriceTaxi":50}
+{
+  "Framework": "Core",
+  "PriceMechanic": 150,
+  "PriceTaxi": 50
+}

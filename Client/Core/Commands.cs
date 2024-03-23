@@ -15,9 +15,10 @@ namespace Client.Core
         public Commands(Main main):base(main)
         {
             mechanicController = Main.GetScript<MechanicController>();
+            taxiController = Main.GetScript<TaxiController>();
         }
         [Command("aimech")]
-        private async void StartMechanic()
+        private void StartMechanic()
         {
             Ped playerPed = Game.PlayerPed;
             if (playerPed.CurrentVehicle != null)
@@ -35,12 +36,12 @@ namespace Client.Core
             
         }
         [Command("aitaxi")]
-        private async void StartTaxi()
+        private void StartTaxi()
         {
             Ped playerPed = Game.PlayerPed;
             if (!taxiController.IsRuning())
             {
-                taxiController.CreateCar(playerPed.CurrentVehicle.Position);
+                taxiController.CreateCar(playerPed.Position);
             }
             else
             {
