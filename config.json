@@ -1,5 +1,7 @@
 {
   "Framework": "Core",
   "PriceMechanic": 150,
-  "PriceTaxi": 50
+  "PriceTaxi": 50,
+  "PriceTaxiForce": 100,
+  "PriceTaxiForKm": 5
 }

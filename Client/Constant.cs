@@ -16,6 +16,10 @@ namespace Client
         public static string Framework { get; set; }
         public static decimal PriceMechanic { get; set; }
         public static decimal PriceTaxi { get; set; }
+        public static decimal PriceTaxiForce { get; set; }
+        public static decimal PriceTaxiForKm { get; set; }
+        
+
 
         #endregion
 

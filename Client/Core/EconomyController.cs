@@ -52,6 +52,7 @@ namespace Client.Core
 
         internal async void Pay(decimal price)
         {
+            Logger.Warn($"Pay {price}");
             if (Constant.Framework == "Core")
             {
                 playerEconomyDataReady = false;

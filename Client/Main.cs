@@ -40,6 +40,8 @@ namespace Client
             Constant.Framework = Constant.Config["Framework"].ToString();
             Constant.PriceMechanic = decimal.Parse(Constant.Config["PriceMechanic"].ToString());
             Constant.PriceTaxi = decimal.Parse(Constant.Config["PriceTaxi"].ToString());
+            Constant.PriceTaxiForce = decimal.Parse(Constant.Config["PriceTaxiForce"].ToString());
+            Constant.PriceTaxiForKm = decimal.Parse(Constant.Config["PriceTaxiForKm"].ToString());
 
             LoadScript(new EconomyController(this));
             LoadScript(new MechanicController(this));
