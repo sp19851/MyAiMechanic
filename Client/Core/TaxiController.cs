@@ -46,7 +46,7 @@ namespace Client.Core
             taxiVehicle = null;
             taxi = null;
             taxiVehicleBlip = null;
-
+            dist = 0;
             if (Constant.Framework == "Core") TriggerEvent("Notification.AddAdvanceNotif", "ТАКСИ", "", 3500, "Диспетчер. Такси опять доступно для Вас!", "green", "Info");
             else Screen.ShowNotification("Диспетчер. Такси опять доступно для Вас!");
         }
@@ -174,7 +174,7 @@ namespace Client.Core
             if (!API.DoesBlipExist(API.GetFirstBlipInfoId(8)))
             {
                 Screen.ShowSubtitle("F-для посадки, затем отметьте точку на карте и нажмите-E", 2000);
-
+                taxiVehicle.LockStatus = VehicleLockStatus.Unlocked;
 
             }
             else
@@ -226,7 +226,7 @@ namespace Client.Core
             }
             if (Game.IsControlJustPressed(0, Control.Jump))
             {
-                if (Constant.Framework == "Core") TriggerEvent("Notification.AddAdvanceNotif", "ТАКСИ", "", 3500, "Включаем форсаж!", "orange", "Info");
+                if (Constant.Framework == "Core") TriggerEvent("Notification.AddAdvanceNotif", "ТАКСИ", "", 3500, "Тормоза придумали трусы. Держись!", "orange", "Info");
                 else Screen.ShowNotification("Включаем форсаж!");
                 API.PlayAmbientSpeech1(taxi.Handle, "TAXID_SPEED_UP", "SPEECH_PARAMS_FORCE_NORMAL");
                 taxi.Task.DriveTo(taxiVehicle, waypointCoords.Position, 7f, 60f, (int)DrivingStyle.AvoidTraffic);
@@ -277,6 +277,10 @@ namespace Client.Core
                 Reset();
             }
             //Logger.Warn($"UpdateDrivingToGps dst {dst} taxiVehicle.Speed {taxiVehicle.Speed}");
+            if (dst > 8f && dst < 50f)
+            {
+                taxi.Task.DriveTo(taxiVehicle, waypointCoords.Position, 7f, 10f, (int)DrivingStyle.Normal);
+            }
             if (dst <= 8f)
             {
                 if (taxiVehicle.Speed == 0)
